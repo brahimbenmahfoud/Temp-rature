@@ -18,162 +18,240 @@
     text-align: center;
     margin-bottom: 30px;
   }
-  header h1 {
-    font-size: 1.8rem;
-    margin-bottom: 5px;
+  header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+  #mqtt-status {
+    display: inline-block;
+    font-size: 0.85rem;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-top: 6px;
+    background: rgba(0,0,0,0.3);
   }
-  #status {
-    font-size: 0.9rem;
-    color: #ccc;
-  }
-  #status.connected { color: #4ade80; }
-  #status.disconnected { color: #f87171; }
+  #mqtt-status.connected { color: #4ade80; border: 1px solid #4ade80; }
+  #mqtt-status.disconnected { color: #f87171; border: 1px solid #f87171; }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
-    max-width: 900px;
+    max-width: 1100px;
     margin: 0 auto;
   }
+
   .card {
     background: rgba(255,255,255,0.08);
     border: 1px solid rgba(255,255,255,0.15);
     border-radius: 16px;
-    padding: 25px;
+    padding: 22px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-4px); }
+  .card h2 { font-size: 0.95rem; color: #aad; margin-bottom: 12px; font-weight: 500; }
+
+  /* ESP status badge */
+  .esp-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: bold;
+  }
+  .esp-badge.online  { background: #166534; color: #4ade80; border: 1px solid #4ade80; }
+  .esp-badge.offline { background: #7f1d1d; color: #f87171; border: 1px solid #f87171; }
+
+  .temp-value { font-size: 3rem; font-weight: bold; }
+  .temp-unit  { font-size: 1.4rem; color: #ccc; }
+  .last-update { font-size: 0.78rem; color: #999; margin-top: 8px; }
+
+  .temp-normal  { color: #4ade80; }
+  .temp-warning { color: #fbbf24; }
+  .temp-danger  { color: #f87171; }
+  .temp-na      { color: #777; }
+
+  /* Weather card */
+  .weather-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 22px;
     text-align: center;
     backdrop-filter: blur(10px);
     transition: transform 0.2s;
   }
-  .card:hover { transform: translateY(-4px); }
-  .card h2 {
-    font-size: 1rem;
-    color: #aad;
-    margin-bottom: 15px;
-    font-weight: 500;
-  }
-  .temp-value {
-    font-size: 3rem;
-    font-weight: bold;
-  }
-  .temp-unit {
-    font-size: 1.5rem;
-    color: #ccc;
-  }
-  .last-update {
-    font-size: 0.8rem;
-    color: #999;
-    margin-top: 10px;
-  }
-  .temp-normal { color: #4ade80; }
-  .temp-warning { color: #fbbf24; }
-  .temp-danger { color: #f87171; }
-  .temp-na { color: #777; }
+  .weather-card:hover { transform: translateY(-4px); }
+  .weather-card h2 { font-size: 0.95rem; color: #aad; margin-bottom: 12px; }
+  .weather-icon { font-size: 2.5rem; margin-bottom: 6px; }
+  .weather-temp { font-size: 2.8rem; font-weight: bold; color: #60a5fa; }
+  .weather-desc { font-size: 0.9rem; color: #ccc; margin-top: 4px; }
+  .weather-details { font-size: 0.8rem; color: #999; margin-top: 8px; line-height: 1.7; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🐔 مدجنة العشي - مراقبة الحرارة</h1>
-  <div id="status" class="disconnected">جاري الاتصال...</div>
+  <div id="mqtt-status" class="disconnected">MQTT: جاري الاتصال...</div>
 </header>
 
 <div class="grid">
+
+  <!-- بطاقة الطقس - منزل تميم -->
+  <div class="weather-card">
+    <h2>🌤 طقس منزل تميم</h2>
+    <div class="weather-icon" id="w-icon">⏳</div>
+    <div class="weather-temp" id="w-temp">--</div>
+    <div class="temp-unit">°C</div>
+    <div class="weather-desc" id="w-desc">جاري التحميل...</div>
+    <div class="weather-details" id="w-details"></div>
+  </div>
+
+  <!-- Sonde بداية المدجنة -->
   <div class="card">
-    <h2>Poulailler 1 - بداية المدجنة</h2>
+    <div class="esp-badge offline" id="esp-badge">● offline</div>
+    <h2>سيدي حميد - بداية المدجنة</h2>
     <div class="temp-value temp-na" id="temp-debut">--</div>
     <div class="temp-unit">°C</div>
     <div class="last-update" id="time-debut">بانتظار القراءة...</div>
   </div>
 
+  <!-- Sonde آخر المدجنة -->
   <div class="card">
-    <h2>Poulailler 1 - آخر المدجنة</h2>
+    <div class="esp-badge offline" id="esp-badge2">● offline</div>
+    <h2>سيدي حميد - آخر المدجنة</h2>
     <div class="temp-value temp-na" id="temp-fin">--</div>
     <div class="temp-unit">°C</div>
     <div class="last-update" id="time-fin">بانتظار القراءة...</div>
   </div>
+
 </div>
 
 <script>
-// ---------- إعدادات MQTT (HiveMQ Cloud over WebSocket) ----------
+// ===================== MQTT =====================
 const MQTT_HOST = "3924e1f72e944a159bf930ffd0d13bcd.s1.eu.hivemq.cloud";
-const MQTT_PORT = 8884; // بورت WebSocket Secure متاع HiveMQ Cloud
+const MQTT_PORT = 8884;
 const MQTT_USER = "Brahim";
 const MQTT_PASS = "RatylBaker2427@";
 
-const TOPIC_DEBUT = "bbm/3achi/poulailler1/temperature_debut";
-const TOPIC_FIN   = "bbm/3achi/poulailler1/temperature_fin";
+const TOPIC_DEBUT  = "bbm/3achi/poulailler1/temperature_debut";
+const TOPIC_FIN    = "bbm/3achi/poulailler1/temperature_fin";
+const TOPIC_STATUS = "bbm/3achi/poulailler1/status"; // Last Will topic
 
-const statusEl = document.getElementById("status");
-const tempDebutEl = document.getElementById("temp-debut");
-const tempFinEl = document.getElementById("temp-fin");
-const timeDebutEl = document.getElementById("time-debut");
-const timeFinEl = document.getElementById("time-fin");
+const mqttStatusEl = document.getElementById("mqtt-status");
+const espBadge     = document.getElementById("esp-badge");
+const espBadge2    = document.getElementById("esp-badge2");
+const tempDebutEl  = document.getElementById("temp-debut");
+const tempFinEl    = document.getElementById("temp-fin");
+const timeDebutEl  = document.getElementById("time-debut");
+const timeFinEl    = document.getElementById("time-fin");
 
 function setTempClass(el, value) {
-  el.classList.remove("temp-normal", "temp-warning", "temp-danger", "temp-na");
-  if (value === null || isNaN(value)) {
-    el.classList.add("temp-na");
-  } else if (value < 18 || value > 32) {
-    el.classList.add("temp-danger");
-  } else if (value < 22 || value > 28) {
-    el.classList.add("temp-warning");
-  } else {
-    el.classList.add("temp-normal");
-  }
+  el.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
+  if (isNaN(value))        el.classList.add("temp-na");
+  else if (value < 18 || value > 32) el.classList.add("temp-danger");
+  else if (value < 22 || value > 28) el.classList.add("temp-warning");
+  else                     el.classList.add("temp-normal");
+}
+
+function setEspStatus(online) {
+  [espBadge, espBadge2].forEach(b => {
+    b.textContent = online ? "● online" : "● offline";
+    b.className = "esp-badge " + (online ? "online" : "offline");
+  });
 }
 
 function formatTime() {
-  const now = new Date();
-  return "آخر تحديث: " + now.toLocaleTimeString("ar-TN");
+  return "آخر تحديث: " + new Date().toLocaleTimeString("ar-TN");
 }
 
-// اتصال عبر WebSocket Secure
 const client = mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`, {
   username: MQTT_USER,
   password: MQTT_PASS,
-  clientId: "webdash_" + Math.random().toString(16).substr(2, 8),
+  clientId: "webdash_" + Math.random().toString(16).substr(2,8),
   clean: true,
   reconnectPeriod: 3000
 });
 
 client.on("connect", () => {
-  statusEl.textContent = "متصل ✓";
-  statusEl.className = "connected";
+  mqttStatusEl.textContent = "MQTT: متصل ✓";
+  mqttStatusEl.className = "connected";
   client.subscribe(TOPIC_DEBUT);
   client.subscribe(TOPIC_FIN);
+  client.subscribe(TOPIC_STATUS);
 });
 
 client.on("reconnect", () => {
-  statusEl.textContent = "جاري إعادة الاتصال...";
-  statusEl.className = "disconnected";
+  mqttStatusEl.textContent = "MQTT: جاري إعادة الاتصال...";
+  mqttStatusEl.className = "disconnected";
 });
 
 client.on("close", () => {
-  statusEl.textContent = "غير متصل";
-  statusEl.className = "disconnected";
-});
-
-client.on("error", (err) => {
-  console.error("MQTT error:", err);
-  statusEl.textContent = "خطأ في الاتصال";
-  statusEl.className = "disconnected";
+  mqttStatusEl.textContent = "MQTT: غير متصل";
+  mqttStatusEl.className = "disconnected";
 });
 
 client.on("message", (topic, message) => {
-  const value = parseFloat(message.toString());
+  const msg = message.toString();
 
+  if (topic === TOPIC_STATUS) {
+    setEspStatus(msg === "online");
+    return;
+  }
+
+  const value = parseFloat(msg);
   if (topic === TOPIC_DEBUT) {
     tempDebutEl.textContent = isNaN(value) ? "--" : value.toFixed(1);
     setTempClass(tempDebutEl, value);
     timeDebutEl.textContent = formatTime();
+    setEspStatus(true);
   } else if (topic === TOPIC_FIN) {
     tempFinEl.textContent = isNaN(value) ? "--" : value.toFixed(1);
     setTempClass(tempFinEl, value);
     timeFinEl.textContent = formatTime();
+    setEspStatus(true);
   }
 });
-</script>
 
+// ===================== WEATHER (منزل تميم) =====================
+// إحداثيات منزل تميم، نابل
+const LAT = 36.78;
+const LON = 10.97;
+const WEATHER_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Africa%2FTunis`;
+
+const weatherIcons = {
+  0:"☀️", 1:"🌤",2:"⛅",3:"☁️",
+  45:"🌫",48:"🌫",
+  51:"🌦",53:"🌦",55:"🌧",
+  61:"🌧",63:"🌧",65:"🌧",
+  80:"🌦",81:"🌧",82:"⛈",
+  95:"⛈",96:"⛈",99:"⛈"
+};
+
+async function fetchWeather() {
+  try {
+    const res  = await fetch(WEATHER_URL);
+    const data = await res.json();
+    const cur  = data.current;
+    const code = cur.weather_code;
+    const temp = cur.temperature_2m;
+    const hum  = cur.relative_humidity_2m;
+    const wind = cur.wind_speed_10m;
+
+    document.getElementById("w-icon").textContent = weatherIcons[code] || "🌡";
+    document.getElementById("w-temp").textContent = temp.toFixed(1);
+    document.getElementById("w-desc").textContent = "رطوبة: " + hum + "% | رياح: " + wind + " km/h";
+    document.getElementById("w-details").textContent = "منزل تميم، نابل";
+  } catch(e) {
+    document.getElementById("w-desc").textContent = "خطأ في تحميل الطقس";
+  }
+}
+
+fetchWeather();
+setInterval(fetchWeather, 10 * 60 * 1000); // كل 10 دقائق
+</script>
 </body>
 </html>
