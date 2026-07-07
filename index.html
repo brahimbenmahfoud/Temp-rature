@@ -202,16 +202,32 @@ client.on("message", (topic, message) => {
     return;
   }
 
-  const value = parseFloat(msg);
+  const isError = (msg === "ERROR" || isNaN(parseFloat(msg)));
+  const value   = parseFloat(msg);
+
   if (topic === TOPIC_DEBUT) {
-    tempDebutEl.textContent = isNaN(value) ? "--" : value.toFixed(1);
-    setTempClass(tempDebutEl, value);
-    timeDebutEl.textContent = formatTime();
+    if (isError) {
+      tempDebutEl.textContent = "⚠";
+      tempDebutEl.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
+      tempDebutEl.classList.add("temp-danger");
+      timeDebutEl.textContent = "خطأ في القراءة - " + formatTime();
+    } else {
+      tempDebutEl.textContent = value.toFixed(1);
+      setTempClass(tempDebutEl, value);
+      timeDebutEl.textContent = formatTime();
+    }
     setEspStatus(true);
   } else if (topic === TOPIC_FIN) {
-    tempFinEl.textContent = isNaN(value) ? "--" : value.toFixed(1);
-    setTempClass(tempFinEl, value);
-    timeFinEl.textContent = formatTime();
+    if (isError) {
+      tempFinEl.textContent = "⚠";
+      tempFinEl.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
+      tempFinEl.classList.add("temp-danger");
+      timeFinEl.textContent = "خطأ في القراءة - " + formatTime();
+    } else {
+      tempFinEl.textContent = value.toFixed(1);
+      setTempClass(tempFinEl, value);
+      timeFinEl.textContent = formatTime();
+    }
     setEspStatus(true);
   }
 });
