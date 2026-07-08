@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>  مراقبة الحرارة</title>
+<title> مراقبة الحرارة</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -119,13 +119,31 @@
     <div class="last-update" id="time-debut">بانتظار القراءة...</div>
   </div>
 
-  <!-- Sonde آخر المدجنة -->
+  <!-- Sonde آخر المدجنة - سيدي حميد -->
   <div class="card">
     <div class="esp-badge offline" id="esp-badge2">● offline</div>
     <h2>سيدي حميد - آخر المدجنة</h2>
     <div class="temp-value temp-na" id="temp-fin">--</div>
     <div class="temp-unit">°C</div>
     <div class="last-update" id="time-fin">بانتظار القراءة...</div>
+  </div>
+
+  <!-- Loutania - بداية -->
+  <div class="card">
+    <div class="esp-badge offline" id="esp-badge-l1">● offline</div>
+    <h2>عشي لوطانية - بداية المدجنة</h2>
+    <div class="temp-value temp-na" id="temp-l-debut">--</div>
+    <div class="temp-unit">°C</div>
+    <div class="last-update" id="time-l-debut">بانتظار القراءة...</div>
+  </div>
+
+  <!-- Loutania - آخر -->
+  <div class="card">
+    <div class="esp-badge offline" id="esp-badge-l2">● offline</div>
+    <h2>عشي لوطانية - آخر المدجنة</h2>
+    <div class="temp-value temp-na" id="temp-l-fin">--</div>
+    <div class="temp-unit">°C</div>
+    <div class="last-update" id="time-l-fin">بانتظار القراءة...</div>
   </div>
 
 </div>
@@ -142,12 +160,20 @@ const TOPIC_FIN    = "bbm/3achi/poulailler1/temperature_fin";
 const TOPIC_STATUS = "bbm/3achi/poulailler1/status"; // Last Will topic
 
 const mqttStatusEl = document.getElementById("mqtt-status");
+// سيدي حميد
 const espBadge     = document.getElementById("esp-badge");
 const espBadge2    = document.getElementById("esp-badge2");
 const tempDebutEl  = document.getElementById("temp-debut");
 const tempFinEl    = document.getElementById("temp-fin");
 const timeDebutEl  = document.getElementById("time-debut");
 const timeFinEl    = document.getElementById("time-fin");
+// لوطانية
+const espBadgeL1   = document.getElementById("esp-badge-l1");
+const espBadgeL2   = document.getElementById("esp-badge-l2");
+const tempLDebutEl = document.getElementById("temp-l-debut");
+const tempLFinEl   = document.getElementById("temp-l-fin");
+const timeLDebutEl = document.getElementById("time-l-debut");
+const timeLFinEl   = document.getElementById("time-l-fin");
 
 function setTempClass(el, value) {
   el.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
@@ -157,8 +183,8 @@ function setTempClass(el, value) {
   else                     el.classList.add("temp-normal");
 }
 
-function setEspStatus(online) {
-  [espBadge, espBadge2].forEach(b => {
+function setEspStatus(badges, online) {
+  badges.forEach(b => {
     b.textContent = online ? "● online" : "● offline";
     b.className = "esp-badge " + (online ? "online" : "offline");
   });
@@ -182,6 +208,9 @@ client.on("connect", () => {
   client.subscribe(TOPIC_DEBUT);
   client.subscribe(TOPIC_FIN);
   client.subscribe(TOPIC_STATUS);
+  client.subscribe(TOPIC_L_DEBUT);
+  client.subscribe(TOPIC_L_FIN);
+  client.subscribe(TOPIC_L_STATUS);
 });
 
 client.on("reconnect", () => {
@@ -194,41 +223,40 @@ client.on("close", () => {
   mqttStatusEl.className = "disconnected";
 });
 
+function updateCard(tempEl, timeEl, badges, msg) {
+  const isError = (msg === "ERROR" || isNaN(parseFloat(msg)));
+  const value   = parseFloat(msg);
+  if (isError) {
+    tempEl.textContent = "⚠";
+    tempEl.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
+    tempEl.classList.add("temp-danger");
+    timeEl.textContent = "خطأ في القراءة - " + formatTime();
+  } else {
+    tempEl.textContent = value.toFixed(1);
+    setTempClass(tempEl, value);
+    timeEl.textContent = formatTime();
+  }
+  setEspStatus(badges, true);
+}
+
 client.on("message", (topic, message) => {
   const msg = message.toString();
 
+  // سيدي حميد
   if (topic === TOPIC_STATUS) {
-    setEspStatus(msg === "online");
-    return;
-  }
-
-  const isError = (msg === "ERROR" || isNaN(parseFloat(msg)));
-  const value   = parseFloat(msg);
-
-  if (topic === TOPIC_DEBUT) {
-    if (isError) {
-      tempDebutEl.textContent = "⚠";
-      tempDebutEl.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
-      tempDebutEl.classList.add("temp-danger");
-      timeDebutEl.textContent = "خطأ في القراءة - " + formatTime();
-    } else {
-      tempDebutEl.textContent = value.toFixed(1);
-      setTempClass(tempDebutEl, value);
-      timeDebutEl.textContent = formatTime();
-    }
-    setEspStatus(true);
+    setEspStatus([espBadge, espBadge2], msg === "online");
+  } else if (topic === TOPIC_DEBUT) {
+    updateCard(tempDebutEl, timeDebutEl, [espBadge, espBadge2], msg);
   } else if (topic === TOPIC_FIN) {
-    if (isError) {
-      tempFinEl.textContent = "⚠";
-      tempFinEl.classList.remove("temp-normal","temp-warning","temp-danger","temp-na");
-      tempFinEl.classList.add("temp-danger");
-      timeFinEl.textContent = "خطأ في القراءة - " + formatTime();
-    } else {
-      tempFinEl.textContent = value.toFixed(1);
-      setTempClass(tempFinEl, value);
-      timeFinEl.textContent = formatTime();
-    }
-    setEspStatus(true);
+    updateCard(tempFinEl, timeFinEl, [espBadge, espBadge2], msg);
+
+  // لوطانية
+  } else if (topic === TOPIC_L_STATUS) {
+    setEspStatus([espBadgeL1, espBadgeL2], msg === "online");
+  } else if (topic === TOPIC_L_DEBUT) {
+    updateCard(tempLDebutEl, timeLDebutEl, [espBadgeL1, espBadgeL2], msg);
+  } else if (topic === TOPIC_L_FIN) {
+    updateCard(tempLFinEl, timeLFinEl, [espBadgeL1, espBadgeL2], msg);
   }
 });
 
