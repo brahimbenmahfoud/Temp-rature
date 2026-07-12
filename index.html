@@ -32,7 +32,7 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
     max-width: 1100px;
     margin: 0 auto;
@@ -49,7 +49,7 @@
     position: relative;
   }
   .card:hover { transform: translateY(-4px); }
-  .card h2 { font-size: 0.95rem; color: #aad; margin-bottom: 12px; font-weight: 500; }
+  .card h2 { font-size: 0.85rem; color: #aad; margin-bottom: 12px; font-weight: 500; line-height: 1.4; min-height: 2.5em; display: flex; align-items: center; justify-content: center; }
 
   /* ESP status badge */
   .esp-badge {
@@ -94,7 +94,7 @@
 <body>
 
 <header>
-  <h1>🐔  مراقبة الحرارة</h1>
+  <h1>🐔 مراقبة الحرارة</h1>
   <div id="mqtt-status" class="disconnected">MQTT: جاري الاتصال...</div>
 </header>
 
@@ -131,7 +131,7 @@
   <!-- Loutania - بداية -->
   <div class="card">
     <div class="esp-badge offline" id="esp-badge-l1">● offline</div>
-    <h2>شبي لوطانية - بداية المدجنة</h2>
+    <h2>شبي لوطانية - بداية المدجنة </h2>
     <div class="temp-value temp-na" id="temp-l-debut">--</div>
     <div class="temp-unit">°C</div>
     <div class="last-update" id="time-l-debut">بانتظار القراءة...</div>
@@ -155,9 +155,15 @@ const MQTT_PORT = 8884;
 const MQTT_USER = "Brahim";
 const MQTT_PASS = "RatylBaker2427@";
 
-const TOPIC_DEBUT  = "bbm/3achi/poulailler1/temperature_debut";
-const TOPIC_FIN    = "bbm/3achi/poulailler1/temperature_fin";
-const TOPIC_STATUS = "bbm/3achi/poulailler1/status"; // Last Will topic
+// سيدي حميد
+const TOPIC_DEBUT   = "bbm/3achi/poulailler1/temperature_debut";
+const TOPIC_FIN     = "bbm/3achi/poulailler1/temperature_fin";
+const TOPIC_STATUS  = "bbm/3achi/poulailler1/status";
+
+// لوطانية
+const TOPIC_L_DEBUT  = "bbm/3achi/loutania/temperature_debut";
+const TOPIC_L_FIN    = "bbm/3achi/loutania/temperature_fin";
+const TOPIC_L_STATUS = "bbm/3achi/loutania/status";
 
 const mqttStatusEl = document.getElementById("mqtt-status");
 // سيدي حميد
